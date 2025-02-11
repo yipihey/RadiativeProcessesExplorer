@@ -43,7 +43,7 @@ def photoionization_cross_section_cgs(nu, Z):
     # Dimensionless parameter
     tau = np.sqrt(nu / nu_0 - 1)
     # Cross-section formula
-    sigma = sigma_0 * (nu_0 / nu)**3 * np.exp(-4 * np.arctan(tau) / tau) / (1 - np.exp(-2 * np.pi / tau))
+    sigma = sigma_0 * (nu_0 / nu)**3 * np.exp( -4 * np.arctan(tau) / tau) / (1 - np.exp(-2 * np.pi / tau))
 
     if isinstance(nu, np.ndarray):
         sigma[nu<nu_0] = 0

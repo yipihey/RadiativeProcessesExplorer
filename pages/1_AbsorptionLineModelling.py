@@ -32,6 +32,16 @@ x = c/nu*1e8 if unit.startswith("Wavelength") else nu/1e12
 fig.add_trace(go.Scatter(x=x, y=sigma_nu, name="Cross Section", line=dict(color='blue')))
 fig.add_trace(go.Scatter(x=x, y=intensity, name="Intensity", yaxis="y2", line=dict(color='red')))
 
+# Add vertical line at threshold frequency
+linex = c/nu_0*1e8 if unit.startswith("Wavelength") else nu_0/1e12
+fig.add_vline(
+    x=linex,
+    line=dict(color="grey", width=2, dash="dash"),
+    annotation_text=f"line ({linex:.4g} )",
+    annotation_position="top right"
+)
+
+
 fig.update_layout(
     title="Voigt Profile & Absorption Line",
     xaxis_title="Wavelength (Å)" if unit.startswith("Wavelength") else "Frequency (THz)",

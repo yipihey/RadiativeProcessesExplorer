@@ -19,7 +19,7 @@ def voigt_profile(nu, nu_0, A21, T, m, v_shift):
 
 def calculate_absorption(nu_0, lambda_delta, A21, T, m, v_shift, N):
     """Calculate absorption parameters."""
-    nu = np.linspace(nu_0*(1 - lambda_delta), nu_0*(1 + lambda_delta), 500)
+    nu = np.linspace(nu_0*(1 - lambda_delta), nu_0*(1 + lambda_delta), 1500)
     phi_V = voigt_profile(nu, nu_0, A21, T, m, v_shift*1e5)
     
     B12 = (c**2 / (2 * h * nu_0**3)) * A21  # g2/g1 = 1 assumed

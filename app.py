@@ -13,6 +13,10 @@ pio.templates["custom"].layout.update(
     legend=dict(font=dict(size=16)),  # Legend font size
     margin=dict(l=50, r=50, t=50, b=50),  # Adjust margins
 )
+# Set global spline interpolation
+pio.templates["custom"].data.scatter = [
+    dict(line=dict(shape="spline", smoothing=0.6))  # Set default to spline
+]
 
 # Apply globally
 pio.templates.default = "custom"

@@ -24,9 +24,9 @@ sigma_0 = (64 * np.pi * alpha * a0**2) / (3 * np.sqrt(3) * Z**2)
 # Display threshold frequency in sidebar
 st.sidebar.markdown(f"""
 ### Threshold Frequency:
-- **Frequency:** {nu_0_THz:.4g} THz
-- **Energy:** {E_0_eV:.4g} eV
-- **Wavelength:** {lambda_0_A:.4g} Å
+- **Frequency:** {nu_0_THz:.5g} THz
+- **Energy:** {E_0_eV:.5g} eV
+- **Wavelength:** {lambda_0_A:.5g} Å
 ### Threshold Cross Section:
 - $\sigma_0 = $ {sigma_0:.4g} cm²
 """)

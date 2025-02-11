@@ -2,12 +2,12 @@ import numpy as np
 from scipy.special import wofz
 
 # Physical constants
-R_H = 2.18e-11  # Rydberg constant [erg]
+R_H =  2.1798723611030e-11  # Rydberg constant [erg]
 h = 6.626e-27   # Planck's constant [erg·s]
-alpha = 1 / 137 # Fine-structure constant
-a0 = 5.29e-9    # Bohr radius [cm]
-c = 2.998e10  # Speed of light [cm/s]
-k_B = 1.38e-16  # Boltzmann constant [erg/K]
+alpha = 1 / 137.035999177 # Fine-structure constant
+a0 = 5.291772105e-9    # Bohr radius [cm]
+c = 2.99792458e10  # Speed of light [cm/s]
+k_B = 1.380649e-16  # Boltzmann constant [erg/K]
 
 def voigt_profile(nu, nu_0, A21, T, m, v_shift):
     """Compute Voigt profile for absorption line modeling."""

@@ -21,12 +21,12 @@ pio.templates["custom"].data.scatter = [
 # Apply globally
 pio.templates.default = "custom"
 
-
 st.set_page_config(page_title="Radiative Processes Explorer", layout="wide")
 st.title("🌌 Radiative Processes Explorer")
 st.markdown("""
 Welcome to the Radiative Processes Explorer! Select a page from the sidebar to explore different radiative processes.
 """)
 pg = st.navigation([st.Page("./pages/1_AbsorptionLineModelling.py"),
-                    st.Page("./pages/2_PhotoIonizationModelling.py")])
+                    st.Page("./pages/2_PhotoIonizationModelling.py"),
+                    st.Page("./pages/3_RecombinationSpectrum.py")])
 pg.run()

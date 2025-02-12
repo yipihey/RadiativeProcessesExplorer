@@ -54,3 +54,90 @@ def photoionization_cross_section_cgs(nu, Z):
     
     return sigma
 
+def bb(nu, T):
+    return 2*h*nu**3/c**2 / (np.exp(h*nu/k/T) - 1)
+
+def stellar_bb_spectrum(nu,T,R):
+    return 4*np.pi * R**2 * bb(nu,T)
+
+from scipy.integrate import quad
+
+def number_ionizing_photons(thresh, T, R):
+    def integrand(nu):
+        return 1/(h*nu) * stellar_bb_spectrum(nu,T,R)
+    return quad(integrand, thresh, 1000*thresh)
+
+
+# Add these new functions to your existing physics.py
+
+def recombination_coefficient(T_e, n):
+    """Hydrogenic recombination coefficient to level n (cm³/s)"""
+    return 2.07e-11 * n**(-3.) * (T_e/1e4)**-0.75
+
+def einstein_A_hydrogen(n):
+    """Einstein A coefficient for hydrogen transitions (s⁻¹)"""
+    return 4.7e9 * n**(-3.)
+
+def two_photon_profile(nu, nu_Lyα):
+    """Two-photon decay spectral profile (Hz⁻¹)"""
+    y = nu / nu_Lyα
+    mask = (y > 0) & (y < 1)
+    phi = np.zeros_like(y)
+    phi[mask] = (6/(5*nu_Lyα)) * y[mask] * (1 - y[mask])
+    return phi
+
+def recombination_spectrum(T_e, n_max, n_e, nu_grid, 
+                          case_b=True, two_photon=True):
+    """
+    Compute hydrogen recombination spectrum
+    
+    Parameters:
+    T_e: Electron temperature [K]
+    n_max: Maximum principal quantum number
+    n_e: Electron density [cm⁻³]
+    nu_grid: Frequency grid [Hz]
+    
+    Returns:
+    spectrum: Emission spectrum [erg s⁻¹ Hz⁻¹]
+    wavelength: Corresponding wavelength grid [Å]
+    """
+    # Use existing constants from physics.py
+    global R_H, h, c, k_B
+    
+    # Level populations
+    n_levels = np.arange(2, n_max+1)
+    alpha_n = np.array([recombination_coefficient(T_e, n) for n in n_levels])
+    N_n = alpha_n / alpha_n.sum()
+    
+    spectrum = np.zeros_like(nu_grid)
+    nu_Lyα = R_H/h * (1 - 1/2**2)  # 3/4 R_H/h
+    
+    # Line emission using existing voigt_profile
+    for i, n in enumerate(n_levels):
+        for n_prime in range(1, n):
+            if case_b and n_prime == 1:
+                continue  # Skip Lyman series for Case B
+                
+            # Transition parameters
+            nu_ij = R_H/h * (1/n_prime**2 - 1/n**2)
+            A = einstein_A_hydrogen(n)
+            
+            # Use existing voigt_profile with electron mass
+            profile = voigt_profile(
+                nu=nu_grid,
+                nu_0=nu_ij,
+                A21=A,
+                T=T_e,
+                m=9.109e-28,  # Electron mass in grams
+                v_shift=0
+            )
+            
+            spectrum += h*nu_ij * A * N_n[i] * n_e * profile
+
+    # Add two-photon continuum using existing constants
+    if two_photon and 2 in n_levels:
+        A_2γ = 8.22  # Two-photon decay rate [s⁻¹]
+        N_2s = N_n[0] * 0.1  # Assume 10% population in 2s
+        spectrum += h*nu_Lyα * A_2γ * N_2s * n_e * two_photon_profile(nu_grid, nu_Lyα)
+
+    return spectrum, c/nu_grid * 1e8  # spectrum, wavelength in Å

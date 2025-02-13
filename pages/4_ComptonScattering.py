@@ -5,7 +5,7 @@ from physics import compton_cross_section, c, h, m_e
 
 st.title("☢️ Compton Scattering Cross-Section")
 
-sigma_thomson = compton_cross_section(0)  # Thomson limit
+sigma_thomson = compton_cross_section(1e-3)  # Thomson limit
 
 st.markdown(r"""
 ### Klein-Nishina Cross Section

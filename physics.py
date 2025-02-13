@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.special import wofz
+from scipy.integrate import trapezoid
+
 
 # Physical constants
 R_H =  2.1798723611030e-11  # Rydberg constant [erg]
@@ -56,7 +58,7 @@ def photoionization_cross_section_cgs(nu, Z):
     return sigma
 
 def bb(nu, T):
-    return 2*h*nu**3/c**2 / (np.exp(h*nu/k/T) - 1)
+    return 2*h*nu**3/c**2 / (np.exp(h*nu/k_B/T) - 1)
 
 def stellar_bb_spectrum(nu,T,R):
     return 4*np.pi * R**2 * bb(nu,T)
@@ -149,10 +151,8 @@ def compton_cross_section(E_eV):
     sigma_T = 6.652458732e-25  # Thomson cross-section (cm²)
     m_e_c2_eV = 511e3  # Electron rest mass in eV
     
-    x = E_eV / m_e_c2_eV
+    x = np.asarray(E_eV) / m_e_c2_eV
     
-    if x <= 0.001:
-        return sigma_T
     
     # Corrected Klein-Nishina formula implementation
     term1 = (1 + x)/x**3
@@ -163,4 +163,64 @@ def compton_cross_section(E_eV):
     term4 = (1 + 3*x)/((1 + 2*x)**2)
     
     ratio = 0.75 * (term1*(term2a - term2b) + term3 - term4)
+
+    ratio = np.where(x < 1e-3, 1, ratio)
+    
     return sigma_T * ratio
+
+
+from scipy.integrate import trapezoid
+import numpy as np
+
+def calculate_ic_spectrum(nu_input, I_input, gamma, n_e, T_bb):
+    """Stable inverse Compton calculation using trapezoidal integration"""
+    # Constants
+    mec2 = m_e * c**2  # erg
+    h_nu_input = h * nu_input  # erg
+    
+    # Create output frequency grid (log spaced)
+    nu_output = np.logspace(
+        np.log10(nu_input.min()) - 2,
+        np.log10(nu_input.max()) + np.log10(gamma.max()**2) + 2,
+        500
+    )
+    
+    # Initialize output spectrum
+    I_output = np.zeros_like(nu_output)
+    
+    # Create integration grids in log space
+    log_gamma = np.log(gamma)
+    log_nu_input = np.log(nu_input)
+    
+    # Precompute boost factors and cross sections
+    gamma_2d, nu_2d = np.meshgrid(gamma, nu_input, indexing='ij')
+    with np.errstate(divide='ignore', invalid='ignore'):
+        boost = (4/3) * gamma_2d**2 * (h_nu_input / mec2)
+        valid = (boost > 1e-6) & (boost < 1e6)
+        nu_scat = nu_2d * boost
+        x = h_nu_input / (gamma_2d * mec2)
+    
+    sigma = compton_cross_section(x * 511e3)  # x in eV
+    integrand = np.where(valid, n_e[:, None] * sigma * I_input * boost, 0.0)
+    
+    # Main integration loop
+    for i, nu_out in enumerate(nu_output):
+        # Frequency bin with 5% tolerance
+        mask = (nu_scat >= 0.95*nu_out) & (nu_scat <= 1.05*nu_out)
+        
+        if not np.any(mask):
+            continue
+            
+        # Apply mask and integrate
+        masked = np.where(mask, integrand/nu_scat, 0)
+        
+        # Integrate over gamma dimension first
+        int_gamma = trapezoid(masked, x=log_gamma, axis=0)
+        
+        # Then integrate over input frequencies
+        I_output[i] = trapezoid(int_gamma, x=log_nu_input)
+
+    # Apply smoothing filter
+    I_output = np.convolve(I_output, np.ones(3)/3, mode='same')
+    
+    return nu_output, I_output

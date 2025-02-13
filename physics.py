@@ -8,6 +8,7 @@ alpha = 1 / 137.035999177 # Fine-structure constant
 a0 = 5.291772105e-9    # Bohr radius [cm]
 c = 2.99792458e10  # Speed of light [cm/s]
 k_B = 1.380649e-16  # Boltzmann constant [erg/K]
+m_e = 9.10938188e-28
 
 def voigt_profile(nu, nu_0, A21, T, m, v_shift):
     """Compute Voigt profile for absorption line modeling."""
@@ -141,3 +142,25 @@ def recombination_spectrum(T_e, n_max, n_e, nu_grid,
         spectrum += h*nu_Lyα * A_2γ * N_2s * n_e * two_photon_profile(nu_grid, nu_Lyα)
 
     return spectrum, c/nu_grid * 1e8  # spectrum, wavelength in Å
+
+
+def compton_cross_section(E_eV):
+    """Calculate Compton scattering cross-section using Klein-Nishina formula"""
+    sigma_T = 6.652458732e-25  # Thomson cross-section (cm²)
+    m_e_c2_eV = 511e3  # Electron rest mass in eV
+    
+    x = E_eV / m_e_c2_eV
+    
+    if x <= 0.001:
+        return sigma_T
+    
+    # Corrected Klein-Nishina formula implementation
+    term1 = (1 + x)/x**3
+    term2a = (2*x*(1 + x))/(1 + 2*x)
+    term2b = np.log(1 + 2*x)  # Removed erroneous /x
+    
+    term3 = np.log(1 + 2*x)/(2*x)
+    term4 = (1 + 3*x)/((1 + 2*x)**2)
+    
+    ratio = 0.75 * (term1*(term2a - term2b) + term3 - term4)
+    return sigma_T * ratio

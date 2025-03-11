@@ -2,6 +2,7 @@ import numpy as np
 from scipy.special import wofz
 from scipy.integrate import trapezoid
 
+import pandas as pd
 
 # Physical constants
 R_H =  2.1798723611030e-11  # Rydberg constant [erg]
@@ -224,3 +225,143 @@ def calculate_ic_spectrum(nu_input, I_input, gamma, n_e, T_bb):
     I_output = np.convolve(I_output, np.ones(3)/3, mode='same')
     
     return nu_output, I_output
+
+########################
+
+# Li and Draine 2001 (PAH Absorption Code)
+
+
+filename = "./drude_params.csv"
+
+class Blackbody:
+    def __init__(self, T):
+        self.T = T
+
+    def spectrum(self, lam):
+        """
+        - lam: wavelength in microns
+
+        Returns:
+        - intensity at the given wavelength
+        """
+
+        lam *= 1e-6  # convert microns to meters
+
+        h = 6.62607015e-34  # Planck constant in J*s
+        c = 3.0e8  # speed of light in m/s
+        k = 1.380649e-23  # Boltzmann constant in J/K
+
+        return (2.0 * h * c**2) / (lam**5 * (np.exp(h * c / (lam * k * self.T)) - 1.0))
+
+class PAHSpectrum:
+
+    def __init__(self, NC, HC_ratio, ionized=False):
+        self.H_C = HC_ratio
+        self.NC = NC
+        self.table = pd.read_csv(filename)
+        self.ionized = ionized
+
+        self.lam_min = 1/17.25
+        self.lam_max = 1/3.3
+
+
+    def check_lam_bounds(self, lam):
+        
+
+        if lam < self.lam_min:
+            raise ValueError("Wavelength is out of bounds for model")
+
+    def get_sigma(self, j, ionized=False):
+
+        
+        sigma = 0.0
+
+        if ionized:
+            sigma = self.table["sigma_ion"][j]
+        else:
+            sigma = self.table["sigma"][j]
+        
+        # Modify cross sections that depend linearly on
+        # the H/C ratio.
+        if j in (3, 6, 7, 8, 9):
+            return sigma * self.H_C * 1e-20
+        
+        return sigma * 1e-20
+
+    def S(self, lam, j):
+        """
+        - lam: wavelength in microns
+        - j: feature number
+
+        Returns:
+        - absorption cross-section per carbon atom in cm2 / C
+        """
+
+        # self.check_lam_bounds(lam)
+
+        lam /= 10000 # convert micron to cm
+
+        gam_j = self.table["gamma_j"][j]
+        lam_j = self.table["lam_j"][j] / 10000 # convert micron to cm
+        sigma = self.get_sigma(j, self.ionized)
+
+        return (2 / np.pi) * (gam_j * lam_j * sigma) / ((lam / lam_j - lam_j / lam)**2 + gam_j**2)
+
+    def absorption_cross_section(self, lam):
+        """
+        absorption cross section per carbon atom
+        """
+        self.check_lam_bounds(lam)
+        x = (1./lam)
+
+        if x > 17.25:
+            raise ValueError("x is out of bounds")
+        elif (15. < x) and (x < 17.25):
+            return (126. - 6.4943 * x) * 1e-18
+        elif (10. < x) and (x < 15.):
+            return self.S(lam, 1) + (-3.0 + 1.35*x) * 1e-18
+        elif (7.7 < x) and (x < 10.):
+            return (66.302 - 24.367*x + 2.950*x**2 - 0.1057*x**3) * 1e-18
+        elif (5.9 < x) and (x < 7.7):
+            return self.S(lam, 2) + (1.8687 + 0.1905*x + 0.4175 * (x - 5.9)**2 + 0.04370 * (x - 5.9)**3) * 1e-18
+        elif (3.3 < x) and (x < 5.9):
+            return self.S(lam, 2)  + (1.8687 + 0.1905*x) * 1e-18 
+        elif x < 3.3:
+
+            S_3_14 = np.sum([self.S(lam, i) for i in range(2, 14)])
+
+            return 34.58**(-18-(3.431 / x)) * self.cutoff(lam) + S_3_14
+    
+    # def sum_S(self, lam):
+    #     return np.sum([self.S(lam, j) for j in range(0, 5)])
+
+    def cutoff(self, lam):
+        # Desert+1990
+
+        self.check_lam_bounds(lam)
+
+        M = 0.
+
+        if self.NC >= 40:
+            M = 0.4 * self.NC
+        elif self.NC < 40:
+            M = 0.3 * self.NC
+        
+        lam_c = 0.
+
+        if self.ionized:
+            # PAH Cations
+            lam_c = 1 / (2.282 * M**(-0.5) + 0.889)
+        else:
+            lam_c = 1 / (3.804 * M**(-0.5) + 1.052)
+            
+
+        y = lam_c / lam
+
+        return (1/np.pi) * np.arctan((10 * (y-1))**3 / y) + (1/2)
+
+    def optical_depth(self, lam):
+        self.NC * self.absorption_cross_section(lam)
+
+    def attenuate(self, intensity, lam):
+        return intensity * np.exp(self.optical_depth(lam))

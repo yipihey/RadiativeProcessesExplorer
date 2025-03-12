@@ -29,5 +29,6 @@ Welcome to the Radiative Processes Explorer! Select a page from the sidebar to e
 pg = st.navigation([st.Page("./pages/1_AbsorptionLineModelling.py"),
                     st.Page("./pages/2_PhotoIonizationModelling.py"),
                     st.Page("./pages/3_RecombinationSpectrum.py"),
-                    st.Page("./pages/4_ComptonScattering.py")])
+                    st.Page("./pages/4_ComptonScattering.py"),
+                    st.Page("./pages/6_PAHAbsorption.py")])
 pg.run()

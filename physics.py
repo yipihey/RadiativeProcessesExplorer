@@ -12,6 +12,8 @@ a0 = 5.291772105e-9    # Bohr radius [cm]
 c = 2.99792458e10  # Speed of light [cm/s]
 k_B = 1.380649e-16  # Boltzmann constant [erg/K]
 m_e = 9.10938188e-28
+m_p = 1.6726e-24
+
 
 def voigt_profile(nu, nu_0, A21, T, m, v_shift):
     """Compute Voigt profile for absorption line modeling."""
@@ -71,8 +73,6 @@ def number_ionizing_photons(thresh, T, R):
         return 1/(h*nu) * stellar_bb_spectrum(nu,T,R)
     return quad(integrand, thresh, 1000*thresh)
 
-
-# Add these new functions to your existing physics.py
 
 def recombination_coefficient(T_e, n):
     """Hydrogenic recombination coefficient to level n (cm³/s)"""
@@ -225,6 +225,38 @@ def calculate_ic_spectrum(nu_input, I_input, gamma, n_e, T_bb):
     I_output = np.convolve(I_output, np.ones(3)/3, mode='same')
     
     return nu_output, I_output
+
+
+def hydrogen_energy(n):
+    """Energy of hydrogen level n in erg"""
+    return -R_H*h*c/n**2
+
+def hydrogen_radiative_rates(n_upper, n_lower):
+    """Einstein A coefficient for transition n_upper -> n_lower"""
+    if n_upper <= n_lower: return 0
+    return 6.67e8 * (n_upper - n_lower)**2 / (n_upper**2 * n_lower**3)
+
+def hydrogen_oscillator_strength(n_upper, n_lower):
+    """Quantum mechanical oscillator strength"""
+    if n_upper <= n_lower: return 0
+    delta_n = n_upper - n_lower
+    return (32/3*np.sqrt(3)/(3*np.pi)) * (n_lower**2 * n_upper**2)/(n_upper**2 - n_lower**2)**3
+
+def hydrogen_collisional_rate(n_lower, n_upper, T, ne):
+    """Accurate collisional rate coefficient (cm³/s)"""
+    delta_E = hydrogen_energy(n_upper) - hydrogen_energy(n_lower)
+    return 8.63e-6 * ne * hydrogen_oscillator_strength(n_upper, n_lower) / \
+           (T**0.5 * (n_lower**2)) * np.exp(-delta_E/(k_B*T))
+
+def planck_function(nu, T):
+    """Radiation field intensity (erg/cm²/s/Hz/sr)"""
+    return (2*h*nu**3/c**2) / (np.exp(h*nu/(k_B*T)) - 1)    
+
+def photoionization_cross_section_hydrogen(E_photon, n):
+    """Hydrogenic photoionization cross-section (cm²)"""
+    E_ion = -hydrogen_energy(n)
+    x = E_photon/E_ion
+    return 6.3e-18 * n**-5 * (x >= 1) * (x**-3.5)
 
 ########################
 

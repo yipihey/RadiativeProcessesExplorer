@@ -25,7 +25,7 @@ where:
 # Sidebar controls
 st.sidebar.header("Photon Energy Range")
 min_energy = st.sidebar.number_input("Min Energy (eV)", 1e-3, 1e12, 1e-3, format="%.1e")
-max_energy = st.sidebar.number_input("Max Energy (eV)", 1e-3, 1e12, 1e6, format="%.1e")
+max_energy = st.sidebar.number_input("Max Energy (eV)", 1e-3, 1e12, 1e9, format="%.1e")
 unit = st.sidebar.radio("Energy Unit", ["eV", "keV", "MeV", "GeV"],index=2)
 
 # Energy grid

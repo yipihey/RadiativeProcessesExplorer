@@ -397,3 +397,38 @@ class PAHSpectrum:
 
     def attenuate(self, intensity, lam):
         return intensity * np.exp(self.optical_depth(lam))
+
+import numpy as np
+from scipy.integrate import quad
+from scipy.special import kv  # Modified Bessel function K_nu_5/3
+import matplotlib.pyplot as plt
+
+q_cgs = 4.8032e-10  # electron charge 
+m_e_cgs = 9.1093837e-28 
+c = 3e10
+
+def nu_crit(gamma, B, alpha):
+    """Calculate the critical frequency ν_c for an electron with Lorentz factor gamma"""
+    nu_G = q_cgs * B / (2 * np.pi * m_e_cgs * c)  # electron gyrofrequency
+    return (3 / 2) * gamma**2 * nu_G * np.sin(alpha)
+
+def single_particle_synchrotron(nu, B, gamma, alpha):
+    """Compute P(nu, gamma) for a single electron"""
+    nu_c = nu_crit(gamma, B, alpha)
+    eta_min = nu / nu_c
+    
+    # Integration over the modified Bessel function
+    integral, _ = quad(lambda eta: kv(5/3, eta), eta_min, np.inf, limit=100)
+    
+    norm = (np.sqrt(3) * q_cgs**3 * B * np.sin(alpha)) / (m_e_cgs * c**2)
+    return norm * (nu / nu_c) * integral
+
+def particle_distribution(gamma, p):
+    """Power-law distribution of electrons: N(gamma) ~ gamma^(-p)"""
+    return gamma**-p
+
+def total_synchrotron_spectrum(nu, B, alpha, gamma_min, gamma_max, p):
+    """Integrate over all electron energies to get total synchrotron power"""
+    integrand = lambda gamma: single_particle_synchrotron(nu, B, gamma, alpha) * particle_distribution(gamma, p)
+    total_power, _ = quad(integrand, gamma_min, gamma_max, limit=100)
+    return total_power

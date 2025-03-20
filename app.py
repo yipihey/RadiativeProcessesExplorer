@@ -33,6 +33,7 @@ pg = st.navigation([st.Page("./pages/1_AbsorptionLineModelling.py"),
                     st.Page("./pages/5_InverseComptonScattering.py"),
                     st.Page("./pages/6_PAHAbsorption.py"),
                     st.Page("./pages/7_PolarizedComptonScattering.py")
-#                   ,st.Page("./pages/8_MultiLevelHydrogenAbsorption.py") # doesn't work yet
+#                   ,st.Page("./pages/8_MultiLevelHydrogenAbsorption.py"), # doesn't work yet
+                    st.Page("./pages/9_Synchrotron.py")
                     ])
 pg.run()
